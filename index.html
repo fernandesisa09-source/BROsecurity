@@ -22,6 +22,9 @@ h1,h2,h3{margin:0 0 10px}.sub{color:var(--muted);font-size:14px}.field{margin:12
 .mobile{display:none}
 @media(max-width:900px){.side{width:210px}.main{margin-left:210px;width:calc(100% - 210px)}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
 @media(max-width:650px){.side{display:none}.main{margin:0;width:100%;padding:16px}.mobile{display:block}.cards{grid-template-columns:1fr 1fr}.top{align-items:flex-start}.form-grid{grid-template-columns:1fr}.full{grid-column:auto}}
+
+.toast{position:fixed;right:18px;bottom:18px;z-index:60;background:#17324d;color:#fff;padding:12px 15px;border-radius:12px;box-shadow:0 10px 30px #17324d33;display:none;max-width:360px}.toast.show{display:block}.empty{padding:24px;text-align:center;color:var(--muted)}.small{font-size:12px}.mobile-menu{display:none}.statline{display:flex;gap:8px;flex-wrap:wrap}.photo-preview{max-width:110px;max-height:80px;border-radius:8px;border:1px solid var(--line);object-fit:cover}.signature-pad{width:100%;height:150px;border:1px dashed #9fb5c8;border-radius:10px;background:#fff;touch-action:none}.hint{font-size:12px;color:var(--muted);margin-top:5px}
+@media(max-width:650px){.mobile-menu{display:block}.top{gap:8px}.top .user{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.side.open{display:block;position:fixed;left:0;top:0;bottom:0;width:255px;z-index:40;box-shadow:10px 0 30px #17324d33}.side{padding-top:60px}.toolbar input{min-width:0;width:100%}.toolbar{display:block}.toolbar>*{margin-bottom:8px;width:100%}.actions button{padding:8px 10px}.table th,.table td{white-space:normal}.modal{padding:10px}.modal-box{max-height:94vh;padding:16px}}
 </style>
 </head>
 <body>
@@ -59,8 +62,9 @@ h1,h2,h3{margin:0 0 10px}.sub{color:var(--muted);font-size:14px}.field{margin:12
 
 <main class="main">
   <div class="top">
+    <button class="secondary mobile-menu" onclick="toggleMenu()">☰ Menu</button>
     <div><h1 id="pageTitle">Dashboard</h1><div class="sub">BROsecurity • Assistência Técnica Autorizada STILMAS</div></div>
-    <div class="user" id="userEmail"></div>
+    
   </div>
 
   <section id="dashboard" class="section active">
@@ -69,12 +73,12 @@ h1,h2,h3{margin:0 0 10px}.sub{color:var(--muted);font-size:14px}.field{margin:12
       <div class="card"><div class="metric" id="mEquip">0</div><div class="metric-label">Equipamentos</div></div>
       <div class="card"><div class="metric" id="mCalls">0</div><div class="metric-label">Chamados abertos</div></div>
       <div class="card"><div class="metric" id="mVisits">0</div><div class="metric-label">Visitas agendadas</div></div>
-<div class="card"><div class="metric" id="mRenewals">0</div><div class="metric-label">Renovações próximas</div></div>
+<div class="card"><div class="metric" id="mRenewals">0</div><div class="metric-label">Renovações próximas</div></div><div class="card"><div class="metric" id="mStock">0</div><div class="metric-label">Itens no estoque mínimo</div></div>
     </div>
     <div class="grid2">
       <div class="panel"><div class="panel-head"><h3>Próximas visitas</h3><button class="secondary" onclick="showSection('visits')">Ver agenda</button></div><div id="dashVisits"></div></div>
       <div class="panel"><div class="panel-head"><h3>Chamados prioritários</h3><button class="secondary" onclick="showSection('calls')">Ver chamados</button></div><div id="dashCalls"></div></div>
-<div class="panel"><div class="panel-head"><h3>Renovações próximas</h3><button class="secondary" onclick="showSection('renewals')">Ver renovações</button></div><div id="dashRenewals"></div></div>
+<div class="panel"><div class="panel-head"><h3>Renovações próximas</h3><button class="secondary" onclick="showSection('renewals')">Ver renovações</button></div><div id="dashRenewals"></div></div><div class="panel"><div class="panel-head"><h3>Estoque mínimo</h3><button class="secondary" onclick="showSection('parts')">Ver estoque</button></div><div id="dashStock"></div></div>
     </div>
   </section>
 
@@ -123,138 +127,62 @@ h1,h2,h3{margin:0 0 10px}.sub{color:var(--muted);font-size:14px}.field{margin:12
 </main>
 </div>
 
+<div id="toast" class="toast"></div>
 <div id="modal" class="modal"><div class="modal-box"><div class="panel-head"><h3 id="modalTitle">Cadastro</h3><button class="ghost" onclick="closeModal()">✕</button></div><form id="form" onsubmit="saveForm(event)"><div id="formFields"></div><div class="form-actions"><button type="button" class="secondary" onclick="closeModal()">Cancelar</button><button class="primary" type="submit">Salvar</button></div></form></div></div>
 
 <script>
-const SUPABASE_URL = "https://eidvcksmfvpxzenhdjzr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_KIa-l4TG3BaHuGQBI43tTA_T81wBNYa";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let currentSection='dashboard', currentEdit=null, cache={};
-
+const SUPABASE_URL="https://eidvcksmfvpxzenhdjzr.supabase.co";
+const SUPABASE_KEY="sb_publishable_KIa-l4TG3BaHuGQBI43tTA_T81wBNYa";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentSection='dashboard',currentEdit=null,cache={},filtered={};
 const defs={
 employees:{table:'bro_employees',title:'Funcionário / Técnico',label:'Funcionários',fields:[
-['full_name','Nome completo','text',true],['cpf','CPF','text'],['phone','Telefone','text'],['email','E-mail','email'],['role','Cargo / função','text'],['specialty','Especialidade','text'],['admission_date','Data de admissão','date'],['status','Status','select',['active','inactive']],['notes','Observações','textarea']]},
+['full_name','Nome completo','text',true],['cpf','CPF','text'],['phone','Telefone','tel'],['email','E-mail','email'],['role','Cargo / função','text'],['specialty','Especialidade','text'],['admission_date','Data de admissão','date'],['status','Status','select',['active','inactive']],['notes','Observações','textarea']]},
 clients:{table:'bro_clients',title:'Cliente',label:'Clientes',fields:[
-['legal_name','Razão social','text',true],['trade_name','Nome fantasia','text'],['cnpj','CNPJ','text'],['contact_name','Responsável','text'],['technical_contact','Responsável técnico','text'],['phone','Telefone','text'],['email','E-mail','email'],['address','Endereço','text'],['city','Cidade','text'],['state','Estado','text'],['status','Status','select',['active','inactive']],['notes','Observações','textarea']]},
+['legal_name','Razão social','text',true],['trade_name','Nome fantasia','text'],['cnpj','CNPJ','text'],['contact_name','Responsável','text'],['technical_contact','Responsável técnico','text'],['phone','Telefone','tel'],['email','E-mail','email'],['address','Endereço','text'],['city','Cidade','text'],['state','Estado','text'],['status','Status','select',['active','inactive']],['notes','Observações','textarea']]},
 equipment:{table:'bro_equipment',title:'Equipamento STILMAS',label:'Equipamentos',fields:[
-['client_id','Cliente','ref','bro_clients'],['equipment_type','Tipo de equipamento','text',true],['model','Modelo','text'],['serial_number','Número de série','text'],['asset_number','Patrimônio','text'],['installation_date','Data de instalação','date'],['location','Local instalado','text'],['warranty_until','Garantia até','date'],['status','Status','select',['operational','maintenance','stopped','inactive']],['notes','Observações','textarea']]},
+['client_id','Cliente','ref','bro_clients',true],['equipment_type','Tipo de equipamento','text',true],['model','Modelo','text'],['serial_number','Número de série','text'],['asset_number','Patrimônio','text'],['installation_date','Data de instalação','date'],['location','Local instalado','text'],['warranty_until','Garantia até','date'],['status','Status','select',['operational','maintenance','stopped','inactive']],['notes','Observações','textarea']]},
 calls:{table:'bro_service_calls',title:'Chamado técnico',label:'Chamados',fields:[
-['client_id','Cliente','ref','bro_clients'],['equipment_id','Equipamento','ref','bro_equipment'],['assigned_employee_id','Técnico responsável','ref','bro_employees'],['title','Assunto','text',true],['description','Descrição','textarea'],['priority','Prioridade','select',['low','normal','high','urgent']],['status','Status','select',['open','scheduled','in_progress','waiting_parts','completed','cancelled']],['scheduled_for','Agendado para','datetime-local'],['diagnosis','Diagnóstico','textarea'],['solution','Solução aplicada','textarea'],['notes','Observações','textarea']]},
+['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['assigned_employee_id','Técnico responsável','ref','bro_employees'],['title','Assunto','text',true],['description','Descrição','textarea'],['priority','Prioridade','select',['low','normal','high','urgent']],['status','Status','select',['open','scheduled','in_progress','waiting_parts','completed','cancelled']],['scheduled_for','Agendado para','datetime-local'],['diagnosis','Diagnóstico','textarea'],['solution','Solução aplicada','textarea'],['parts_used','Peças utilizadas','textarea'],['notes','Observações','textarea']]},
 visits:{table:'bro_visits',title:'Agendamento de visita',label:'Visitas',fields:[
-['client_id','Cliente','ref','bro_clients'],['equipment_id','Equipamento','ref','bro_equipment'],['employee_id','Técnico','ref','bro_employees'],['visit_date','Data','date',true],['start_time','Hora inicial','time'],['end_time','Hora final','time'],['visit_type','Tipo de visita','text'],['reason','Motivo','textarea'],['status','Status','select',['scheduled','in_progress','completed','cancelled','rescheduled']],['address','Endereço da visita','text'],['notes','Observações','textarea']]},
+['service_call_id','Chamado','ref','bro_service_calls'],['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['employee_id','Técnico','ref','bro_employees',true],['visit_date','Data','date',true],['start_time','Hora inicial','time'],['end_time','Hora final','time'],['visit_type','Tipo de visita','text'],['reason','Motivo','textarea'],['status','Status','select',['scheduled','in_progress','completed','cancelled','rescheduled']],['address','Endereço da visita','text'],['notes','Observações','textarea']]},
 reports:{table:'bro_service_reports',title:'Relatório de atendimento',label:'Relatórios',fields:[
-['service_call_id','Chamado','ref','bro_service_calls'],['visit_id','Visita','ref','bro_visits'],['client_id','Cliente','ref','bro_clients'],['equipment_id','Equipamento','ref','bro_equipment'],['employee_id','Técnico','ref','bro_employees'],['reported_problem','Problema relatado','textarea'],['diagnosis','Diagnóstico','textarea'],['service_performed','Serviço realizado','textarea'],['equipment_operational','Equipamento operacional?','select',['true','false']],['pending_items','Pendências','textarea'],['observations','Observações','textarea'],['customer_responsible_name','Responsável do cliente','text']]},
+['service_call_id','Chamado','ref','bro_service_calls',true],['visit_id','Visita','ref','bro_visits'],['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['employee_id','Técnico','ref','bro_employees',true],['reported_problem','Problema relatado','textarea'],['diagnosis','Diagnóstico','textarea'],['service_performed','Serviço realizado','textarea'],['parts_used','Peças utilizadas','textarea'],['equipment_operational','Equipamento operacional?','select',['true','false']],['pending_items','Pendências','textarea'],['observations','Observações','textarea'],['customer_responsible_name','Responsável do cliente','text'],['photos','Fotos (links)','textarea'],['customer_signature_url','Assinatura do cliente (link)','text'],['technician_signature_url','Assinatura do técnico (link)','text']]},
 renewals:{table:'bro_renewals',title:'Renovação',label:'Renovações',fields:[
 ['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['renewal_type','Tipo de renovação','text',true],['reference','Contrato / referência','text'],['renewal_date','Data de renovação','date',true],['reminder_days','Avisar com (dias)','number'],['status','Status','select',['pending','renewed','expired','cancelled']],['responsible_employee_id','Responsável','ref','bro_employees'],['notes','Observações','textarea']]},
 parts:{table:'bro_parts',title:'Peça / Item de estoque',label:'Peças',fields:[
 ['code','Código','text'],['description','Descrição','text',true],['stock_quantity','Quantidade em estoque','number'],['unit','Unidade','text'],['min_stock','Estoque mínimo','number'],['active','Ativo','select',['true','false']],['notes','Observações','textarea']]}
 };
-
-async function signIn(){
- const email=document.getElementById('email').value.trim().toLowerCase(), password=document.getElementById('password').value;
- const msg=document.getElementById('loginMsg');
- if(!email || !password){msg.textContent='Digite o e-mail e a senha.';return}
- msg.textContent='Entrando...';
- try{
-   const result=await Promise.race([
-     db.auth.signInWithPassword({email,password}),
-     new Promise((_,reject)=>setTimeout(()=>reject(new Error('A conexão demorou. Verifique sua internet e tente novamente.')),15000))
-   ]);
-   if(result.error){msg.textContent='E-mail ou senha incorretos. Se precisar, use “Esqueci minha senha”.';return}
-   msg.textContent='';
- }catch(e){msg.textContent=e?.message||'Não foi possível entrar. Tente novamente.'}
-}
-async function resetPassword(){
- const email=document.getElementById('email').value.trim().toLowerCase();
- const msg=document.getElementById('loginMsg');
- if(!email){msg.textContent='Digite seu e-mail primeiro.';return}
- msg.textContent='Enviando o link de recuperação...';
- try{
-   const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
-   msg.textContent=error?error.message:'Enviamos um link de recuperação para seu e-mail.';
- }catch(e){msg.textContent=e?.message||'Não foi possível enviar o link.'}
-}
-async function signOut(){await db.auth.signOut()}
-db.auth.onAuthStateChange((_event,session)=>{ if(session){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('userEmail').textContent=session.user.email||'';loadAll();}else{document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden');}});
-async function loadAll(){for(const k of Object.keys(defs)) await load(k); await dashboard()}
-async function load(k){
- const d=defs[k]; let q=db.from(d.table).select('*').order('created_at',{ascending:false});
- const {data,error}=await q; cache[k]=data||[]; if(error){console.error(error);return} render(k)
-}
+const refMap={bro_clients:'clients',bro_equipment:'equipment',bro_employees:'employees',bro_service_calls:'calls',bro_visits:'visits'};
+const labels={active:'Ativo',inactive:'Inativo',operational:'Operacional',maintenance:'Manutenção',stopped:'Parado',open:'Aberto',scheduled:'Agendado',in_progress:'Em andamento',waiting_parts:'Aguardando peças',completed:'Concluído',cancelled:'Cancelado',rescheduled:'Reagendado',low:'Baixa',normal:'Normal',high:'Alta',urgent:'Urgente',pending:'Pendente',renewed:'Renovado',expired:'Expirado'};
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(window._toast);window._toast=setTimeout(()=>e.classList.remove('show'),3200)}
+function toggleMenu(){document.querySelector('.side').classList.toggle('open')}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function refLabel(k,id){if(!id)return '';const map={bro_clients:'clients',bro_equipment:'equipment',bro_employees:'employees',bro_service_calls:'calls',bro_visits:'visits'};const arr=cache[map[k]]||[];const x=arr.find(a=>a.id===id);if(!x)return id.slice(0,8);return x.full_name||x.trade_name||x.legal_name||x.title||x.serial_number||('#'+x.call_number)||id.slice(0,8)}
-function val(k,f,v){if(f[2]==='ref')return refLabel(f[3],v);if(f[0]==='status'||f[0]==='priority')return String(v||'').replaceAll('_',' ');if(f[0]==='call_number')return '#'+v;return v}
-function render(k){
- const d=defs[k], rows=cache[k]||[], el=document.getElementById(k+'Table'); if(!el)return;
- const cols=d.fields.slice(0,5).map(f=>f[0]);
- let h='<div class="table-wrap"><table class="table"><thead><tr>'+cols.map(c=>'<th>'+esc(d.fields.find(f=>f[0]===c)[1])+'</th>').join('')+'<th>Ações</th></tr></thead><tbody>';
- for(const r of rows){
-   let extra=k==='renewals'?'<button class="primary" onclick="whatsappRenewal(\''+r.id+'\')">🟢 WhatsApp</button>':'';
-   h+='<tr>'+cols.map(c=>{const f=d.fields.find(x=>x[0]===c);return '<td>'+esc(val(k,f,r[c]))+'</td>'}).join('')+'<td><div class="actions"><button class="secondary" onclick="viewRow(\''+k+'\',\''+r.id+'\')">Ver</button><button class="secondary" onclick="openForm(\''+k+'\',\''+r.id+'\')">Editar</button>'+extra+'<button class="danger" onclick="delRow(\''+k+'\',\''+r.id+'\')">Excluir</button></div></td></tr>';
- }
- h+='</tbody></table></div>';el.innerHTML=h||'<div class="sub">Nenhum cadastro encontrado.</div>'
-}
-function showSection(k){currentSection=k;document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(k).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.sec===k));document.getElementById('pageTitle').textContent= k==='dashboard'?'Dashboard':defs[k]?.label||k}
-function openForm(k,id=null){
- currentEdit=id; const d=defs[k]; document.getElementById('modalTitle').textContent=(id?'Editar ':'Novo ')+d.title;
- let r=id?(cache[k]||[]).find(x=>x.id===id):{};
- document.getElementById('formFields').innerHTML='<div class="form-grid">'+d.fields.map(f=>{
-   const [name,label,type,extra]=f,v=r[name]??'';
-   if(type==='textarea')return `<div class="field full"><label>${label}</label><textarea name="${name}">${esc(v)}</textarea></div>`;
-   if(type==='select'){let opts=extra.map(o=>`<option value="${o}" ${String(v)===o?'selected':''}>${o.replaceAll('_',' ')}</option>`).join('');return `<div class="field"><label>${label}</label><select name="${name}"><option value="">Selecione</option>${opts}</select></div>`}
-   if(type==='ref'){let arr=cache[{bro_clients:'clients',bro_equipment:'equipment',bro_employees:'employees',bro_service_calls:'calls',bro_visits:'visits'}[extra]]||[];let opts=arr.map(x=>{let label=x.full_name||x.trade_name||x.legal_name||x.title||x.serial_number||('#'+x.call_number);return `<option value="${x.id}" ${v===x.id?'selected':''}>${esc(label)}</option>`}).join('');return `<div class="field"><label>${label}</label><select name="${name}"><option value="">Selecione</option>${opts}</select></div>`}
-   return `<div class="field"><label>${label}${extra===true?' *':''}</label><input name="${name}" type="${type}" value="${esc(v)}" ${extra===true?'required':''}></div>`
- }).join('')+'</div>';
- document.getElementById('modal').classList.add('show')
-}
+function pretty(v){return labels[v]||String(v??'').replaceAll('_',' ')}
+function refLabel(table,id){if(!id)return '';const arr=cache[refMap[table]]||[];const x=arr.find(a=>a.id===id);if(!x)return String(id).slice(0,8);return x.full_name||x.trade_name||x.legal_name||x.title||x.serial_number||('#'+x.call_number)||String(id).slice(0,8)}
+function displayVal(k,f,v){if(f[2]==='ref')return refLabel(f[3],v);if(f[0]==='call_number')return '#'+v;if(f[0]==='equipment_operational')return v===true?'Sim':v===false?'Não':'';if(f[0]==='status'||f[0]==='priority')return pretty(v);if(f[0]==='parts_used'&&Array.isArray(v))return v.join(', ');if(f[0]==='photos'&&Array.isArray(v))return v.length+' foto(s)';return v}
+async function signIn(){const email=document.getElementById('email').value.trim().toLowerCase(),password=document.getElementById('password').value,msg=document.getElementById('loginMsg');if(!email||!password){msg.textContent='Digite o e-mail e a senha.';return}msg.textContent='Entrando...';try{const r=await Promise.race([db.auth.signInWithPassword({email,password}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('A conexão demorou. Verifique sua internet.')),15000))]);if(r.error){msg.textContent=r.error.message;return}msg.textContent=''}catch(e){msg.textContent=e?.message||'Não foi possível entrar.'}}
+async function resetPassword(){const email=document.getElementById('email').value.trim().toLowerCase(),msg=document.getElementById('loginMsg');if(!email){msg.textContent='Digite seu e-mail primeiro.';return}msg.textContent='Enviando...';try{const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});msg.textContent=error?error.message:'Link enviado para o seu e-mail.'}catch(e){msg.textContent=e?.message||'Não foi possível enviar o link.'}}
+async function signOut(){await db.auth.signOut()}
+db.auth.onAuthStateChange((_event,session)=>{if(session){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');loadAll()}else{document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden')}});
+async function loadAll(){for(const k of Object.keys(defs))await load(k);await dashboard()}
+async function load(k){const d=defs[k];const {data,error}=await db.from(d.table).select('*').order('created_at',{ascending:false});if(error){console.error(k,error);cache[k]=[];toast('Não foi possível carregar '+d.label.toLowerCase());return}cache[k]=data||[];filtered[k]=null;render(k)}
+function getRows(k){return filtered[k]||cache[k]||[]}
+function render(k){const d=defs[k],rows=getRows(k),el=document.getElementById(k+'Table');if(!el)return;const cols=d.fields.slice(0,5);if(!rows.length){el.innerHTML='<div class="empty">Nenhum cadastro encontrado.</div>';return}let h='<div class="table-wrap"><table class="table"><thead><tr>'+cols.map(f=>'<th>'+esc(f[1])+'</th>').join('')+'<th>Ações</th></tr></thead><tbody>';for(const r of rows){const badges=(k==='calls'&&r.priority)?'<span class="badge '+(r.priority==='urgent'||r.priority==='high'?'red':'')+'">'+esc(pretty(r.priority))+'</span>':'';let extra=k==='renewals'?'<button class="primary" onclick="whatsappRenewal(\''+r.id+'\')">🟢 WhatsApp</button>':'';h+='<tr>'+cols.map(f=>'<td>'+esc(displayVal(k,f,r[f[0]]))+'</td>').join('')+'<td><div class="actions"><button class="secondary" onclick="viewRow(\''+k+'\',\''+r.id+'\')">👁️ Ver</button><button class="secondary" onclick="openForm(\''+k+'\',\''+r.id+'\')">✏️ Editar</button>'+extra+badges+'<button class="danger" onclick="delRow(\''+k+'\',\''+r.id+'\')">🗑️ Excluir</button></div></td></tr>'}h+='</tbody></table></div>';el.innerHTML=h}
+function showSection(k){currentSection=k;document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(k).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.sec===k));document.getElementById('pageTitle').textContent=k==='dashboard'?'Dashboard':defs[k]?.label||k;document.querySelector('.side')?.classList.remove('open');if(k!=='dashboard')render(k)}
+function optionLabel(table,x){return x.full_name||x.trade_name||x.legal_name||x.title||x.serial_number||('#'+x.call_number)||String(x.id).slice(0,8)}
+function makeRefOptions(table,value,filterClient){let arr=cache[refMap[table]]||[];if(filterClient&&table==='bro_equipment')arr=arr.filter(x=>x.client_id===filterClient);return '<option value="">Selecione</option>'+arr.map(x=>`<option value="${x.id}" ${value===x.id?'selected':''}>${esc(optionLabel(table,x))}</option>`).join('')}
+function openForm(k,id=null){currentEdit=id;const d=defs[k],r=id?(cache[k]||[]).find(x=>x.id===id):{};document.getElementById('modalTitle').textContent=(id?'Editar ':'Novo ')+d.title;document.getElementById('formFields').innerHTML='<div class="form-grid">'+d.fields.map(f=>fieldHtml(k,f,r[f[0]],r)).join('')+'</div>';document.getElementById('modal').classList.add('show');bindFormEnhancements(k);}
+function fieldHtml(k,f,v,r){const[name,label,type,extra]=f;v=v??'';if(type==='textarea')return `<div class="field full"><label>${label}${extra===true?' *':''}</label><textarea name="${name}" ${extra===true?'required':''}>${esc(Array.isArray(v)?v.join(', '):v)}</textarea></div>`;if(type==='select'){const opts=extra.map(o=>`<option value="${o}" ${String(v)===o?'selected':''}>${esc(pretty(o))}</option>`).join('');return `<div class="field"><label>${label}${extra===true?' *':''}</label><select name="${name}" ${extra===true?'required':''}><option value="">Selecione</option>${opts}</select></div>`}if(type==='ref'){let filterClient=(name==='equipment_id'||name==='equipment_id')?r.client_id:null;if(k!=='equipment'&&name==='equipment_id')filterClient=r.client_id||'';return `<div class="field"><label>${label}${extra===true?' *':''}</label><select name="${name}" data-ref="${f[3]}" ${extra===true?'required':''}>${makeRefOptions(f[3],v,filterClient)}</select></div>`}return `<div class="field"><label>${label}${extra===true?' *':''}</label><input name="${name}" type="${type}" value="${esc(v)}" ${extra===true?'required':''}></div>`}
+function bindFormEnhancements(k){const form=document.getElementById('form');const client=form.querySelector('[name="client_id"]'),equipment=form.querySelector('[name="equipment_id"]');if(client&&equipment){const refresh=()=>{const val=equipment.value,opts=makeRefOptions('bro_equipment',val,client.value);equipment.innerHTML=opts;if(val&&!Array.from(equipment.options).some(o=>o.value===val))equipment.value=''};client.addEventListener('change',refresh)}if(k==='reports'){const call=form.querySelector('[name="service_call_id"]');if(call){call.addEventListener('change',()=>{const c=(cache.calls||[]).find(x=>x.id===call.value);if(c){for(const n of ['client_id','equipment_id']){const el=form.querySelector('[name="'+n+'"]');if(el){el.value=c[n]||'';el.dispatchEvent(new Event('change'))}}}})}}}
 function closeModal(){document.getElementById('modal').classList.remove('show');currentEdit=null}
-async function saveForm(e){
- e.preventDefault(); const k=currentSection==='dashboard'?'clients':currentSection,d=defs[k]; const obj={};
- new FormData(e.target).forEach((v,key)=>{if(v!=='')obj[key]=v});
- if(['reports'].includes(k)){if(obj.equipment_operational!==undefined)obj.equipment_operational=obj.equipment_operational==='true'}
- if(k==='parts'){obj.stock_quantity=Number(obj.stock_quantity||0);obj.min_stock=Number(obj.min_stock||0);obj.active=obj.active!=='false'}
- let res=currentEdit?await db.from(d.table).update(obj).eq('id',currentEdit):await db.from(d.table).insert(obj);
- if(res.error){alert(res.error.message);return}
- closeModal();await load(k);await dashboard()
-}
-async function delRow(k,id){if(!confirm('Excluir este cadastro?'))return;const {error}=await db.from(defs[k].table).delete().eq('id',id);if(error)alert(error.message);else{await load(k);await dashboard()}}
-function viewRow(k,id){const r=(cache[k]||[]).find(x=>x.id===id);if(!r)return;const d=defs[k];let text=d.fields.map(f=>`${f[1]}: ${val(k,f,r[f[0]])}`).join('\\n');alert(text)}
-function filterTable(k,q){const el=document.getElementById(k+'Table');const all=cache[k]||[];const needle=q.toLowerCase();const filtered=all.filter(r=>JSON.stringify(r).toLowerCase().includes(needle));const old=cache[k];cache[k]=filtered;render(k);cache[k]=old}
-function whatsappRenewal(id){
- const r=(cache.renewals||[]).find(x=>x.id===id); if(!r)return;
- const client=refLabel('bro_clients',r.client_id);
- const equipment=r.equipment_id?refLabel('bro_equipment',r.equipment_id):'não informado';
- const message=`🔔 BROsecurity — Aviso de Renovação
-
-Olá! A renovação referente ao cliente *${client}* está prevista para *${r.renewal_date||'data não informada'}*.
-
-Tipo: ${r.renewal_type||'Renovação'}
-Contrato/referência: ${r.reference||'não informado'}
-Equipamento: ${equipment}
-
-Favor verificar a renovação.
-
-BROsecurity — Assistência Técnica Autorizada STILMAS`;
- const ok=confirm('Mensagem pronta para o WhatsApp.\\n\\nClique em OK para copiar a mensagem e abrir o WhatsApp.');
- if(!ok)return;
- navigator.clipboard?.writeText(message).catch(()=>{});
- window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank');
-}
-
-async function dashboard(){
- document.getElementById('mClients').textContent=(cache.clients||[]).filter(x=>x.status!=='inactive').length;
- document.getElementById('mEquip').textContent=(cache.equipment||[]).length;
- document.getElementById('mCalls').textContent=(cache.calls||[]).filter(x=>!['completed','cancelled'].includes(x.status)).length;
- document.getElementById('mVisits').textContent=(cache.visits||[]).filter(x=>x.status==='scheduled').length;
- const today=new Date(); today.setHours(0,0,0,0);
- const horizon=new Date(today); horizon.setDate(horizon.getDate()+60);
- const renewalItems=(cache.renewals||[]).filter(x=>x.status==='pending' && x.renewal_date).sort((a,b)=>String(a.renewal_date).localeCompare(String(b.renewal_date)));
- const upcoming=renewalItems.filter(x=>{const d=new Date(x.renewal_date+'T00:00:00'); return d>=today && d<=horizon;});
- document.getElementById('mRenewals').textContent=upcoming.length;
- document.getElementById('dashRenewals').innerHTML=upcoming.slice(0,6).map(x=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>${esc(refLabel('bro_clients',x.client_id))}</b><br><span class="sub">${esc(x.renewal_date)} • ${esc(x.renewal_type||'Renovação')} • aviso ${esc(x.reminder_days||30)} dias antes</span></div>`).join('')||'<span class="sub">Nenhuma renovação nos próximos 60 dias.</span>';
- let visits=(cache.visits||[]).slice(0,6);document.getElementById('dashVisits').innerHTML=visits.length?visits.map(v=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>${esc(refLabel('bro_clients',v.client_id))}</b><br><span class="sub">${esc(v.visit_date||'')} ${esc(v.start_time||'')} • ${esc(refLabel('bro_employees',v.employee_id))}</span></div>`).join(''):'<span class="sub">Nenhuma visita cadastrada.</span>';
- let calls=(cache.calls||[]).filter(x=>['urgent','high'].includes(x.priority)).slice(0,6);document.getElementById('dashCalls').innerHTML=calls.length?calls.map(c=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>#${c.call_number||''} ${esc(c.title)}</b><br><span class="badge red">${esc(c.priority)}</span> <span class="sub">${esc(refLabel('bro_clients',c.client_id))}</span></div>`).join(''):'<span class="sub">Nenhum chamado prioritário.</span>'
-}
+function normalizeObj(k,obj){if(k==='parts'){obj.stock_quantity=Number(obj.stock_quantity||0);obj.min_stock=Number(obj.min_stock||0);obj.active=obj.active!=='false'}if(['calls','reports'].includes(k)&&obj.parts_used)obj.parts_used=obj.parts_used.split(/[,;\n]/).map(s=>s.trim()).filter(Boolean);if(k==='reports'&&obj.photos)obj.photos=obj.photos.split(/[,;\n]/).map(s=>s.trim()).filter(Boolean);if(k==='reports'&&obj.equipment_operational!==undefined)obj.equipment_operational=obj.equipment_operational==='true';if(k==='renewals')obj.reminder_days=Number(obj.reminder_days||30);return obj}
+async function saveForm(e){e.preventDefault();const k=currentSection,d=defs[k],obj={};new FormData(e.target).forEach((v,key)=>{if(v!=='')obj[key]=v});normalizeObj(k,obj);const res=currentEdit?await db.from(d.table).update(obj).eq('id',currentEdit):await db.from(d.table).insert(obj);if(res.error){toast(res.error.message);return}closeModal();await load(k);await dashboard();toast(currentEdit?'Cadastro atualizado!':'Cadastro salvo!')}
+async function delRow(k,id){if(!confirm('Tem certeza que deseja excluir este cadastro?'))return;const {error}=await db.from(defs[k].table).delete().eq('id',id);if(error){toast(error.message);return}await load(k);await dashboard();toast('Cadastro excluído.')}
+function viewRow(k,id){const r=(cache[k]||[]).find(x=>x.id===id);if(!r)return;const d=defs[k];document.getElementById('modalTitle').textContent='Visualizar • '+d.title;document.getElementById('formFields').innerHTML='<div class="panel" style="box-shadow:none">'+d.fields.map(f=>`<div style="padding:9px 0;border-bottom:1px solid #edf1f5"><div class="small"><b>${esc(f[1])}</b></div><div style="white-space:pre-wrap;margin-top:3px">${esc(displayVal(k,f,r[f[0]])||'—')}</div></div>`).join('')+'</div><div class="form-actions"><button type="button" class="primary" onclick="openForm(\''+k+'\',\''+id+'\')">✏️ Editar</button><button type="button" class="secondary" onclick="closeModal()">Fechar</button></div>';document.getElementById('modal').classList.add('show')}
+function filterTable(k,q){const needle=q.trim().toLowerCase();filtered[k]=needle?(cache[k]||[]).filter(r=>JSON.stringify(r).toLowerCase().includes(needle)):null;render(k)}
+function whatsappRenewal(id){const r=(cache.renewals||[]).find(x=>x.id===id);if(!r)return;const client=refLabel('bro_clients',r.client_id),equipment=r.equipment_id?refLabel('bro_equipment',r.equipment_id):'não informado';const message=`🔔 BROsecurity — Aviso de Renovação\n\nOlá! A renovação referente ao cliente *${client}* está prevista para *${r.renewal_date||'data não informada'}*.\n\nTipo: ${r.renewal_type||'Renovação'}\nContrato/referência: ${r.reference||'não informado'}\nEquipamento: ${equipment}\n\nFavor verificar a renovação.\n\nBROsecurity — Assistência Técnica Autorizada STILMAS`;navigator.clipboard?.writeText(message).catch(()=>{});window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank')}
+async function dashboard(){document.getElementById('mClients').textContent=(cache.clients||[]).filter(x=>x.status!=='inactive').length;document.getElementById('mEquip').textContent=(cache.equipment||[]).length;document.getElementById('mCalls').textContent=(cache.calls||[]).filter(x=>!['completed','cancelled'].includes(x.status)).length;document.getElementById('mVisits').textContent=(cache.visits||[]).filter(x=>x.status==='scheduled').length;const today=new Date();today.setHours(0,0,0,0);const horizon=new Date(today);horizon.setDate(horizon.getDate()+60);const upcoming=(cache.renewals||[]).filter(x=>x.status==='pending'&&x.renewal_date).filter(x=>{const d=new Date(x.renewal_date+'T00:00:00');return d>=today&&d<=horizon}).sort((a,b)=>String(a.renewal_date).localeCompare(String(b.renewal_date)));document.getElementById('mRenewals').textContent=upcoming.length;document.getElementById('dashRenewals').innerHTML=upcoming.slice(0,6).map(x=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>${esc(refLabel('bro_clients',x.client_id))}</b><br><span class="sub">${esc(x.renewal_date)} • ${esc(x.renewal_type||'Renovação')} • aviso ${esc(x.reminder_days||30)} dias antes</span></div>`).join('')||'<span class="sub">Nenhuma renovação nos próximos 60 dias.</span>';const visits=[...(cache.visits||[])].sort((a,b)=>String(a.visit_date||'').localeCompare(String(b.visit_date||''))||String(a.start_time||'').localeCompare(String(b.start_time||''))).slice(0,6);document.getElementById('dashVisits').innerHTML=visits.length?visits.map(v=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>${esc(refLabel('bro_clients',v.client_id))}</b><br><span class="sub">${esc(v.visit_date||'')} ${esc(v.start_time||'')} • ${esc(refLabel('bro_employees',v.employee_id))}</span></div>`).join(''):'<span class="sub">Nenhuma visita cadastrada.</span>';const calls=(cache.calls||[]).filter(x=>['urgent','high'].includes(x.priority)).slice(0,6);document.getElementById('dashCalls').innerHTML=calls.length?calls.map(c=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>#${c.call_number||''} ${esc(c.title)}</b><br><span class="badge red">${esc(pretty(c.priority))}</span> <span class="sub">${esc(refLabel('bro_clients',c.client_id))}</span></div>`).join(''):'<span class="sub">Nenhum chamado prioritário.</span>';const low=(cache.parts||[]).filter(x=>x.active!==false&&Number(x.stock_quantity||0)<=Number(x.min_stock||0));if(document.getElementById('mStock'))document.getElementById('mStock').textContent=low.length;if(document.getElementById('dashStock'))document.getElementById('dashStock').replaceChildren(...(low.slice(0,6).map(x=>{const d=document.createElement('div');d.style='padding:10px 0;border-bottom:1px solid #edf1f5';d.innerHTML='<b>'+esc(x.description)+'</b><br><span class="sub">Estoque: '+esc(x.stock_quantity)+' '+esc(x.unit||'')+' • mínimo '+esc(x.min_stock||0)+'</span>';return d})));if(document.getElementById('dashStock')&&low.length===0)document.getElementById('dashStock').innerHTML='<span class="sub">Nenhuma peça abaixo do estoque mínimo.</span>'}
 showSection('dashboard');
 </script>
 </body>
