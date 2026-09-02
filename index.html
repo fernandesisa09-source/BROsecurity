@@ -34,6 +34,7 @@ h1,h2,h3{margin:0 0 10px}.sub{color:var(--muted);font-size:14px}.field{margin:12
     <div class="field"><label>E-mail</label><input id="email" type="email" placeholder="seu@email.com"></div>
     <div class="field"><label>Senha</label><input id="password" type="password" placeholder="••••••••"></div>
     <button class="primary" style="width:100%" onclick="signIn()">Entrar</button>
+    <button class="ghost" style="width:100%;margin-top:8px" onclick="resetPassword()">Esqueci minha senha</button>
     <p id="loginMsg" class="sub" style="margin-top:12px"></p>
   </div>
 </div>
@@ -150,10 +151,28 @@ parts:{table:'bro_parts',title:'Peça / Item de estoque',label:'Peças',fields:[
 };
 
 async function signIn(){
- const email=document.getElementById('email').value.trim(), password=document.getElementById('password').value;
- const msg=document.getElementById('loginMsg'); msg.textContent='Entrando...';
- const {error}=await db.auth.signInWithPassword({email,password});
- msg.textContent=error?error.message:'';
+ const email=document.getElementById('email').value.trim().toLowerCase(), password=document.getElementById('password').value;
+ const msg=document.getElementById('loginMsg');
+ if(!email || !password){msg.textContent='Digite o e-mail e a senha.';return}
+ msg.textContent='Entrando...';
+ try{
+   const result=await Promise.race([
+     db.auth.signInWithPassword({email,password}),
+     new Promise((_,reject)=>setTimeout(()=>reject(new Error('A conexão demorou. Verifique sua internet e tente novamente.')),15000))
+   ]);
+   if(result.error){msg.textContent='E-mail ou senha incorretos. Se precisar, use “Esqueci minha senha”.';return}
+   msg.textContent='';
+ }catch(e){msg.textContent=e?.message||'Não foi possível entrar. Tente novamente.'}
+}
+async function resetPassword(){
+ const email=document.getElementById('email').value.trim().toLowerCase();
+ const msg=document.getElementById('loginMsg');
+ if(!email){msg.textContent='Digite seu e-mail primeiro.';return}
+ msg.textContent='Enviando o link de recuperação...';
+ try{
+   const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+   msg.textContent=error?error.message:'Enviamos um link de recuperação para seu e-mail.';
+ }catch(e){msg.textContent=e?.message||'Não foi possível enviar o link.'}
 }
 async function signOut(){await db.auth.signOut()}
 db.auth.onAuthStateChange((_event,session)=>{ if(session){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('userEmail').textContent=session.user.email||'';loadAll();}else{document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden');}});
