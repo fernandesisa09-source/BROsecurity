@@ -26,6 +26,78 @@ h1,h2,h3{margin:0 0 10px}.sub{color:var(--muted);font-size:14px}.field{margin:12
 .toast{position:fixed;right:18px;bottom:18px;z-index:60;background:#17324d;color:#fff;padding:12px 15px;border-radius:12px;box-shadow:0 10px 30px #17324d33;display:none;max-width:360px}.toast.show{display:block}.empty{padding:24px;text-align:center;color:var(--muted)}.small{font-size:12px}.mobile-menu{display:none}.statline{display:flex;gap:8px;flex-wrap:wrap}.photo-preview{max-width:110px;max-height:80px;border-radius:8px;border:1px solid var(--line);object-fit:cover}.signature-pad{width:100%;height:150px;border:1px dashed #9fb5c8;border-radius:10px;background:#fff;touch-action:none}.hint{font-size:12px;color:var(--muted);margin-top:5px}
 @media(max-width:650px){.mobile-menu{display:block}.top{gap:8px}.top .user{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.side.open{display:block;position:fixed;left:0;top:0;bottom:0;width:255px;z-index:40;box-shadow:10px 0 30px #17324d33}.side{padding-top:60px}.toolbar input{min-width:0;width:100%}.toolbar{display:block}.toolbar>*{margin-bottom:8px;width:100%}.actions button{padding:8px 10px}.table th,.table td{white-space:normal}.modal{padding:10px}.modal-box{max-height:94vh;padding:16px}}
 </style>
+
+<style id="bro-modern-layout">
+:root{
+ --blue:#1769e8;--blue2:#0b2a52;--light:#edf5ff;--ink:#102a43;
+ --muted:#64748b;--bg:#f6f9fc;--white:#fff;--line:#e2e8f0;
+ --danger:#e5484d;--ok:#1b9a59
+}
+body{background:#f6f9fc;color:var(--ink)}
+.app{min-height:100vh;background:#f6f9fc}
+.side{
+ width:220px;background:linear-gradient(180deg,#061b38 0%,#08294f 100%);
+ border-right:0;padding:20px 14px;position:fixed;inset:0 auto 0 0;
+ box-shadow:8px 0 28px rgba(6,27,56,.10);z-index:10
+}
+.brand{padding:4px 8px 14px;border-bottom:1px solid rgba(255,255,255,.16)}
+.brand img{width:100%;height:70px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.12))}
+.side>.sub{color:#b9cbe0!important;padding:8px 4px 0;font-size:11px}
+.nav{margin-top:18px;display:grid;gap:4px}
+.nav button{
+ color:#dce9f7;border:0;background:transparent;text-align:left;
+ padding:11px 12px;border-radius:9px;font-weight:650;transition:.15s
+}
+.nav button:hover{background:rgba(23,105,232,.22);color:#fff}
+.nav button.active{background:#1769e8;color:#fff;box-shadow:0 5px 14px rgba(23,105,232,.24)}
+.side>.secondary{
+ margin-top:18px!important;background:transparent;color:#ff6268;
+ border:0;text-align:left;padding:11px 12px
+}
+.side>.secondary:hover{background:rgba(229,72,77,.10)}
+.main{margin-left:220px;width:calc(100% - 220px);padding:0 28px 30px}
+.top{
+ min-height:82px;margin:0 -28px 24px;padding:18px 28px;
+ background:#fff;border-bottom:1px solid var(--line);
+ display:flex;align-items:center;justify-content:space-between
+}
+.top h1{font-size:30px;letter-spacing:-.5px;color:#102a43;margin:0 0 4px}
+.top .sub{font-size:14px;color:#718096}
+.cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.card{
+ background:#fff;border:1px solid #e4ebf2;border-radius:14px;padding:20px;
+ box-shadow:0 3px 14px rgba(15,45,75,.04);min-height:116px
+}
+.metric{font-size:30px;font-weight:800;color:#1769e8}
+.metric-label{font-size:13px;color:#61758a;margin-top:7px;font-weight:650}
+.grid2{gap:18px;margin-top:18px}
+.panel{
+ background:#fff;border:1px solid #e4ebf2;border-radius:14px;padding:18px;
+ box-shadow:0 3px 14px rgba(15,45,75,.04)
+}
+.panel-head{margin-bottom:15px}
+.panel-head h2,.panel-head h3{font-size:18px;color:#102a43}
+.toolbar input{border-color:#dbe5ef;background:#fff}
+.primary{background:#1769e8;border-radius:9px;box-shadow:0 4px 10px rgba(23,105,232,.18)}
+.secondary{border-color:#c9d9ea;background:#fff}
+.table{font-size:13px}
+.table th{color:#718096;background:#f8fafc}
+.table th,.table td{padding:12px 10px}
+.badge{background:#edf5ff;color:#1769e8}
+.section.active{animation:brofade .16s ease}
+@keyframes brofade{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:none}}
+.modal-box{border-radius:16px;box-shadow:0 22px 70px rgba(6,27,56,.20)}
+@media(max-width:900px){
+ .side{width:210px}.main{margin-left:210px;width:calc(100% - 210px)}
+ .cards{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:650px){
+ .side{display:none}.main{margin:0;width:100%;padding:0 16px 24px}
+ .top{margin:0 -16px 18px;padding:14px 16px;min-height:72px}
+ .top h1{font-size:25px}.cards{grid-template-columns:1fr 1fr;gap:10px}
+ .card{padding:15px;min-height:100px}
+}
+</style>
 </head>
 <body>
 
@@ -143,7 +215,7 @@ clients:{table:'bro_clients',title:'Cliente',label:'Clientes',fields:[
 equipment:{table:'bro_equipment',title:'Equipamento STILMAS',label:'Equipamentos',fields:[
 ['client_id','Cliente','ref','bro_clients',true],['equipment_type','Tipo de equipamento','text',true],['model','Modelo','text'],['serial_number','Número de série','text'],['asset_number','Patrimônio','text'],['installation_date','Data de instalação','date'],['location','Local instalado','text'],['warranty_until','Garantia até','date'],['status','Status','select',['operational','maintenance','stopped','inactive']],['notes','Observações','textarea']]},
 calls:{table:'bro_service_calls',title:'Chamado técnico',label:'Chamados',fields:[
-['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['assigned_employee_id','Técnico responsável','ref','bro_employees'],['title','Assunto','text',true],['description','Descrição','textarea'],['priority','Prioridade','select',['low','normal','high','urgent']],['status','Status','select',['open','scheduled','in_progress','waiting_parts','completed','cancelled']],['scheduled_for','Agendado para','datetime-local'],['diagnosis','Diagnóstico','textarea'],['solution','Solução aplicada','textarea'],['parts_used','Peças utilizadas','textarea'],['notes','Observações','textarea']]},
+['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['assigned_employee_id','Técnico responsável','ref','bro_employees'],['title','Assunto','text',true],['description','Descrição','textarea'],['priority','Prioridade','select',['low','normal','high','urgent']],['status','Status','select',['open','scheduled','in_progress','waiting_parts','completed','cancelled']],['scheduled_at','Agendado para','datetime-local'],['diagnosis','Diagnóstico','textarea'],['solution','Solução aplicada','textarea'],['parts_used','Peças utilizadas','textarea'],['notes','Observações','textarea']]},
 visits:{table:'bro_visits',title:'Agendamento de visita',label:'Visitas',fields:[
 ['service_call_id','Chamado','ref','bro_service_calls'],['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['employee_id','Técnico','ref','bro_employees',true],['visit_date','Data','date',true],['start_time','Hora inicial','time'],['end_time','Hora final','time'],['visit_type','Tipo de visita','text'],['reason','Motivo','textarea'],['status','Status','select',['scheduled','in_progress','completed','cancelled','rescheduled']],['address','Endereço da visita','text'],['notes','Observações','textarea']]},
 reports:{table:'bro_service_reports',title:'Relatório de atendimento',label:'Relatórios',fields:[
@@ -169,7 +241,7 @@ async function loadAll(){for(const k of Object.keys(defs))await load(k);await da
 async function load(k){const d=defs[k];const {data,error}=await db.from(d.table).select('*').order('created_at',{ascending:false});if(error){console.error(k,error);cache[k]=[];toast('Não foi possível carregar '+d.label.toLowerCase());return}cache[k]=data||[];filtered[k]=null;render(k)}
 function getRows(k){return filtered[k]||cache[k]||[]}
 function render(k){const d=defs[k],rows=getRows(k),el=document.getElementById(k+'Table');if(!el)return;const cols=d.fields.slice(0,5);if(!rows.length){el.innerHTML='<div class="empty">Nenhum cadastro encontrado.</div>';return}let h='<div class="table-wrap"><table class="table"><thead><tr>'+cols.map(f=>'<th>'+esc(f[1])+'</th>').join('')+'<th>Ações</th></tr></thead><tbody>';for(const r of rows){const badges=(k==='calls'&&r.priority)?'<span class="badge '+(r.priority==='urgent'||r.priority==='high'?'red':'')+'">'+esc(pretty(r.priority))+'</span>':'';let extra=k==='renewals'?'<button class="primary" onclick="whatsappRenewal(\''+r.id+'\')">🟢 WhatsApp</button>':'';h+='<tr>'+cols.map(f=>'<td>'+esc(displayVal(k,f,r[f[0]]))+'</td>').join('')+'<td><div class="actions"><button class="secondary" onclick="viewRow(\''+k+'\',\''+r.id+'\')">👁️ Ver</button><button class="secondary" onclick="openForm(\''+k+'\',\''+r.id+'\')">✏️ Editar</button>'+extra+badges+'<button class="danger" onclick="delRow(\''+k+'\',\''+r.id+'\')">🗑️ Excluir</button></div></td></tr>'}h+='</tbody></table></div>';el.innerHTML=h}
-function showSection(k){currentSection=k;document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(k).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.sec===k));document.getElementById('pageTitle').textContent=k==='dashboard'?'Dashboard':defs[k]?.label||k;document.querySelector('.side')?.classList.remove('open');if(k!=='dashboard')render(k)}
+function showSection(k){currentSection=k;document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(k).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.sec===k));document.getElementById('pageTitle').textContent=k==='dashboard'?'Menu':defs[k]?.label||k;document.querySelector('.side')?.classList.remove('open');if(k!=='dashboard')render(k)}
 function optionLabel(table,x){return x.full_name||x.trade_name||x.legal_name||x.title||x.serial_number||('#'+x.call_number)||String(x.id).slice(0,8)}
 function makeRefOptions(table,value,filterClient){let arr=cache[refMap[table]]||[];if(filterClient&&table==='bro_equipment')arr=arr.filter(x=>x.client_id===filterClient);return '<option value="">Selecione</option>'+arr.map(x=>`<option value="${x.id}" ${value===x.id?'selected':''}>${esc(optionLabel(table,x))}</option>`).join('')}
 function openForm(k,id=null){currentEdit=id;const d=defs[k],r=id?(cache[k]||[]).find(x=>x.id===id):{};document.getElementById('modalTitle').textContent=(id?'Editar ':'Novo ')+d.title;document.getElementById('formFields').innerHTML='<div class="form-grid">'+d.fields.map(f=>fieldHtml(k,f,r[f[0]],r)).join('')+'</div>';document.getElementById('modal').classList.add('show');bindFormEnhancements(k);}
