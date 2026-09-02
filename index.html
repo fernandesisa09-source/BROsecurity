@@ -189,8 +189,8 @@ function render(k){
  const cols=d.fields.slice(0,5).map(f=>f[0]);
  let h='<div class="table-wrap"><table class="table"><thead><tr>'+cols.map(c=>'<th>'+esc(d.fields.find(f=>f[0]===c)[1])+'</th>').join('')+'<th>Ações</th></tr></thead><tbody>';
  for(const r of rows){
-   let extra=k==='renewals'?'<button class="primary" onclick="whatsappRenewal(\\''+r.id+'\\')">🟢 WhatsApp</button>':'';
-   h+='<tr>'+cols.map(c=>{const f=d.fields.find(x=>x[0]===c);return '<td>'+esc(val(k,f,r[c]))+'</td>'}).join('')+'<td><div class="actions"><button class="secondary" onclick="viewRow(\\''+k+'\\',\\''+r.id+'\\')">Ver</button><button class="secondary" onclick="openForm(\\''+k+'\\',\\''+r.id+'\\')">Editar</button>'+extra+'<button class="danger" onclick="delRow(\\''+k+'\\',\\''+r.id+'\\')">Excluir</button></div></td></tr>';
+   let extra=k==='renewals'?'<button class="primary" onclick="whatsappRenewal(\''+r.id+'\')">🟢 WhatsApp</button>':'';
+   h+='<tr>'+cols.map(c=>{const f=d.fields.find(x=>x[0]===c);return '<td>'+esc(val(k,f,r[c]))+'</td>'}).join('')+'<td><div class="actions"><button class="secondary" onclick="viewRow(\''+k+'\',\''+r.id+'\')">Ver</button><button class="secondary" onclick="openForm(\''+k+'\',\''+r.id+'\')">Editar</button>'+extra+'<button class="danger" onclick="delRow(\''+k+'\',\''+r.id+'\')">Excluir</button></div></td></tr>';
  }
  h+='</tbody></table></div>';el.innerHTML=h||'<div class="sub">Nenhum cadastro encontrado.</div>'
 }
