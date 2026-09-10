@@ -249,7 +249,43 @@ function fieldHtml(k,f,v,r){const[name,label,type,extra]=f;v=v??'';if(type==='te
 function bindFormEnhancements(k){const form=document.getElementById('form');const client=form.querySelector('[name="client_id"]'),equipment=form.querySelector('[name="equipment_id"]');if(client&&equipment){const refresh=()=>{const val=equipment.value,opts=makeRefOptions('bro_equipment',val,client.value);equipment.innerHTML=opts;if(val&&!Array.from(equipment.options).some(o=>o.value===val))equipment.value=''};client.addEventListener('change',refresh)}if(k==='reports'){const call=form.querySelector('[name="service_call_id"]');if(call){call.addEventListener('change',()=>{const c=(cache.calls||[]).find(x=>x.id===call.value);if(c){for(const n of ['client_id','equipment_id']){const el=form.querySelector('[name="'+n+'"]');if(el){el.value=c[n]||'';el.dispatchEvent(new Event('change'))}}}})}}}
 function closeModal(){document.getElementById('modal').classList.remove('show');currentEdit=null}
 function normalizeObj(k,obj){if(k==='parts'){obj.stock_quantity=Number(obj.stock_quantity||0);obj.min_stock=Number(obj.min_stock||0);obj.active=obj.active!=='false'}if(['calls','reports'].includes(k)&&obj.parts_used)obj.parts_used=obj.parts_used.split(/[,;\n]/).map(s=>s.trim()).filter(Boolean);if(k==='reports'&&obj.photos)obj.photos=obj.photos.split(/[,;\n]/).map(s=>s.trim()).filter(Boolean);if(k==='reports'&&obj.equipment_operational!==undefined)obj.equipment_operational=obj.equipment_operational==='true';if(k==='renewals')obj.reminder_days=Number(obj.reminder_days||30);return obj}
-async function saveForm(e){e.preventDefault();const k=currentSection,d=defs[k],obj={};new FormData(e.target).forEach((v,key)=>{if(v!=='')obj[key]=v});normalizeObj(k,obj);const res=currentEdit?await db.from(d.table).update(obj).eq('id',currentEdit):await db.from(d.table).insert(obj);if(res.error){toast(res.error.message);return}closeModal();await load(k);await dashboard();toast(currentEdit?'Cadastro atualizado!':'Cadastro salvo!')}
+async function saveForm(e){
+e.preventDefault();
+const k=currentSection,d=defs[k],obj={};
+new FormData(e.target).forEach((v,key)=>{if(v!=='')obj[key]=v});
+normalizeObj(k,obj);
+
+/* Visitas exigem client_id. Quando o usuário escolhe um chamado,
+   o cliente e o equipamento podem ser preenchidos automaticamente. */
+if(k==='visits'){
+  const call=obj.service_call_id?(cache.calls||[]).find(x=>x.id===obj.service_call_id):null;
+  if(!obj.client_id && call?.client_id) obj.client_id=call.client_id;
+  if(!obj.equipment_id && call?.equipment_id) obj.equipment_id=call.equipment_id;
+  if(!obj.client_id){
+    toast('Selecione o cliente ou um chamado que tenha cliente cadastrado.');
+    return;
+  }
+  if(!obj.employee_id){
+    toast('Selecione o técnico responsável.');
+    return;
+  }
+}
+
+/* Relatórios também têm client_id obrigatório. */
+if(k==='reports'){
+  const call=obj.service_call_id?(cache.calls||[]).find(x=>x.id===obj.service_call_id):null;
+  const visit=obj.visit_id?(cache.visits||[]).find(x=>x.id===obj.visit_id):null;
+  if(!obj.client_id) obj.client_id=call?.client_id||visit?.client_id||'';
+  if(!obj.equipment_id) obj.equipment_id=call?.equipment_id||visit?.equipment_id||'';
+  if(!obj.employee_id) obj.employee_id=call?.assigned_employee_id||visit?.employee_id||'';
+  if(!obj.client_id){toast('Selecione o cliente ou o chamado/visita primeiro.');return}
+  if(!obj.employee_id){toast('Selecione o técnico responsável.');return}
+}
+
+const res=currentEdit?await db.from(d.table).update(obj).eq('id',currentEdit):await db.from(d.table).insert(obj);
+if(res.error){toast(res.error.message);return}
+closeModal();await load(k);await dashboard();toast(currentEdit?'Cadastro atualizado!':'Cadastro salvo!')
+}
 async function delRow(k,id){if(!confirm('Tem certeza que deseja excluir este cadastro?'))return;const {error}=await db.from(defs[k].table).delete().eq('id',id);if(error){toast(error.message);return}await load(k);await dashboard();toast('Cadastro excluído.')}
 function viewRow(k,id){const r=(cache[k]||[]).find(x=>x.id===id);if(!r)return;const d=defs[k];document.getElementById('modalTitle').textContent='Visualizar • '+d.title;document.getElementById('formFields').innerHTML='<div class="panel" style="box-shadow:none">'+d.fields.map(f=>`<div style="padding:9px 0;border-bottom:1px solid #edf1f5"><div class="small"><b>${esc(f[1])}</b></div><div style="white-space:pre-wrap;margin-top:3px">${esc(displayVal(k,f,r[f[0]])||'—')}</div></div>`).join('')+'</div><div class="form-actions"><button type="button" class="primary" onclick="openForm(\''+k+'\',\''+id+'\')">✏️ Editar</button><button type="button" class="secondary" onclick="closeModal()">Fechar</button></div>';document.getElementById('modal').classList.add('show')}
 function filterTable(k,q){const needle=q.trim().toLowerCase();filtered[k]=needle?(cache[k]||[]).filter(r=>JSON.stringify(r).toLowerCase().includes(needle)):null;render(k)}
