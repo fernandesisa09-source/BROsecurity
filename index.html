@@ -123,7 +123,7 @@ body{background:#f6f9fc;color:var(--ink)}
     <button data-sec="employees" onclick="showSection('employees')">👥 Funcionários</button>
     <button data-sec="clients" onclick="showSection('clients')">🏢 Clientes</button>
     <button data-sec="equipment" onclick="showSection('equipment')">⚙️ Equipamentos</button>
-    <button data-sec="calls" onclick="showSection('calls')">📞 Chamados técnicos</button>
+    <button data-sec="calls" onclick="showSection('calls')">📞 Chamados técnicos</button><button data-sec="orders" onclick="showSection('orders')">📋 Ordens de serviço</button>
     <button data-sec="visits" onclick="showSection('visits')">📅 Agenda de visitas</button>
     <button data-sec="reports" onclick="showSection('reports')">📝 Relatórios</button>
     <button data-sec="parts" onclick="showSection('parts')">📦 Peças / Estoque</button>
@@ -168,6 +168,16 @@ body{background:#f6f9fc;color:var(--ink)}
 
   <section id="calls" class="section">
     <div class="panel"><div class="panel-head"><h3>Chamados técnicos</h3><button class="primary" onclick="openForm('calls')">+ Novo chamado</button></div><div class="toolbar"><input placeholder="Pesquisar..." oninput="filterTable('calls',this.value)"></div><div id="callsTable"></div></div>
+  </section>
+  <section id="orders" class="section">
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Ordens de serviço</h3><div class="sub">Controle das ordens abertas para execução, acompanhamento e encerramento.</div></div>
+        <button class="primary" onclick="openForm('orders')">+ Nova ordem de serviço</button>
+      </div>
+      <div class="toolbar"><input placeholder="Pesquisar OS, cliente, equipamento ou técnico..." oninput="filterTable('orders',this.value)"></div>
+      <div id="ordersTable"></div>
+    </div>
   </section>
 
   <section id="visits" class="section">
@@ -215,6 +225,8 @@ clients:{table:'bro_clients',title:'Cliente',label:'Clientes',fields:[
 equipment:{table:'bro_equipment',title:'Equipamento STILMAS',label:'Equipamentos',fields:[
 ['client_id','Cliente','ref','bro_clients',true],['equipment_type','Tipo de equipamento','text',true],['model','Modelo','text'],['serial_number','Número de série','text'],['asset_number','Patrimônio','text'],['installation_date','Data de instalação','date'],['location','Local instalado','text'],['warranty_until','Garantia até','date'],['status','Status','select',['operational','maintenance','stopped','inactive']],['notes','Observações','textarea']]},
 calls:{table:'bro_service_calls',title:'Chamado técnico',label:'Chamados',fields:[
+['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['assigned_employee_id','Técnico responsável','ref','bro_employees'],['title','Assunto','text',true],['description','Descrição','textarea'],['priority','Prioridade','select',['low','normal','high','urgent']],['status','Status','select',['open','scheduled','in_progress','waiting_parts','completed','cancelled']],['diagnosis','Diagnóstico','textarea'],['solution','Solução aplicada','textarea'],['parts_used','Peças utilizadas','textarea'],['notes','Observações','textarea']]},
+orders:{table:'bro_service_calls',title:'Ordem de serviço',label:'Ordens de serviço',fields:[
 ['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['assigned_employee_id','Técnico responsável','ref','bro_employees'],['title','Assunto','text',true],['description','Descrição','textarea'],['priority','Prioridade','select',['low','normal','high','urgent']],['status','Status','select',['open','scheduled','in_progress','waiting_parts','completed','cancelled']],['diagnosis','Diagnóstico','textarea'],['solution','Solução aplicada','textarea'],['parts_used','Peças utilizadas','textarea'],['notes','Observações','textarea']]},
 visits:{table:'bro_visits',title:'Agendamento de visita',label:'Visitas',fields:[
 ['service_call_id','Chamado','ref','bro_service_calls'],['client_id','Cliente','ref','bro_clients',true],['equipment_id','Equipamento','ref','bro_equipment'],['employee_id','Técnico','ref','bro_employees',true],['visit_date','Data','date',true],['start_time','Hora inicial','time'],['end_time','Hora final','time'],['visit_type','Tipo de visita','text'],['reason','Motivo','textarea'],['status','Status','select',['scheduled','in_progress','completed','cancelled','rescheduled']],['address','Endereço da visita','text'],['notes','Observações','textarea']]},
