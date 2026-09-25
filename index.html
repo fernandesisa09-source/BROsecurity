@@ -357,7 +357,52 @@ BROsecurity — Assistência Técnica Autorizada STILMAS`;
   window.open(url,'_blank');
 }
 
-function whatsappRenewal(id){const r=(cache.renewals||[]).find(x=>x.id===id);if(!r)return;const client=refLabel('bro_clients',r.client_id),equipment=r.equipment_id?refLabel('bro_equipment',r.equipment_id):'não informado';const message=`🔔 BROsecurity — Aviso de Renovação\n\nOlá! A renovação referente ao cliente *${client}* está prevista para *${r.renewal_date||'data não informada'}*.\n\nTipo: ${r.renewal_type||'Renovação'}\nContrato/referência: ${r.reference||'não informado'}\nEquipamento: ${equipment}\n\nFavor verificar a renovação.\n\nBROsecurity — Assistência Técnica Autorizada STILMAS`;navigator.clipboard?.writeText(message).catch(()=>{});window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank')}
+function whatsappRenewal(id){
+ const r=(cache.renewals||[]).find(x=>x.id===id);if(!r)return;
+ const client=(cache.clients||[]).find(x=>x.id===r.client_id)||{};
+ const equipment=(cache.equipment||[]).find(x=>x.id===r.equipment_id)||{};
+ const employee=(cache.employees||[]).find(x=>x.id===r.responsible_employee_id)||{};
+ const clientName=client.trade_name||client.legal_name||refLabel('bro_clients',r.client_id)||'não informado';
+ const equipmentName=[equipment.equipment_type,equipment.model].filter(Boolean).join(' — ')||refLabel('bro_equipment',r.equipment_id)||'não informado';
+ const message=`🔔 BROsecurity — INTEGRAÇÃO / RENOVAÇÃO
+
+🏢 DADOS DA EMPRESA
+Razão social: ${client.legal_name||'não informado'}
+Nome fantasia: ${client.trade_name||'não informado'}
+CNPJ: ${client.cnpj||'não informado'}
+Responsável: ${client.contact_name||'não informado'}
+Responsável técnico: ${client.technical_contact||'não informado'}
+Telefone: ${client.phone||'não informado'}
+E-mail: ${client.email||'não informado'}
+Endereço: ${client.address||'não informado'}
+Cidade/UF: ${[client.city,client.state].filter(Boolean).join(' / ')||'não informado'}
+
+⚙️ EQUIPAMENTO STILMAS
+Equipamento: ${equipmentName}
+Número de série: ${equipment.serial_number||'não informado'}
+Patrimônio: ${equipment.asset_number||'não informado'}
+Local instalado: ${equipment.location||'não informado'}
+Data de instalação: ${fmtBRDate(equipment.installation_date)||'não informado'}
+Garantia até: ${fmtBRDate(equipment.warranty_until)||'não informado'}
+Status: ${pretty(equipment.status||'não informado')}
+
+🔗 DADOS DA INTEGRAÇÃO
+Tipo: ${r.renewal_type||'não informado'}
+Contrato / referência: ${r.reference||'não informado'}
+Data da integração/renovação: ${fmtBRDate(r.renewal_date)||'não informado'}
+Avisar com: ${r.reminder_days||30} dias antes
+Status: ${pretty(r.status||'pending')}
+Responsável BROsecurity: ${employee.full_name||'não informado'}
+Telefone do responsável: ${employee.phone||'não informado'}
+
+📝 OBSERVAÇÕES
+${r.notes||'Nenhuma observação cadastrada.'}
+
+BROsecurity — Assistência Técnica Autorizada STILMAS
+Pós-venda e assistência técnica`;
+ navigator.clipboard?.writeText(message).catch(()=>{});
+ window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank');
+}
 async function dashboard(){document.getElementById('mClients').textContent=(cache.clients||[]).filter(x=>x.status!=='inactive').length;document.getElementById('mEquip').textContent=(cache.equipment||[]).length;document.getElementById('mCalls').textContent=(cache.calls||[]).filter(x=>!['completed','cancelled'].includes(x.status)).length;document.getElementById('mVisits').textContent=(cache.visits||[]).filter(x=>x.status==='scheduled').length;const today=new Date();today.setHours(0,0,0,0);const horizon=new Date(today);horizon.setDate(horizon.getDate()+60);const upcoming=(cache.renewals||[]).filter(x=>x.status==='pending'&&x.renewal_date).filter(x=>{const d=new Date(x.renewal_date+'T00:00:00');return d>=today&&d<=horizon}).sort((a,b)=>String(a.renewal_date).localeCompare(String(b.renewal_date)));document.getElementById('mRenewals').textContent=upcoming.length;document.getElementById('dashRenewals').innerHTML=upcoming.slice(0,6).map(x=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>${esc(refLabel('bro_clients',x.client_id))}</b><br><span class="sub">${esc(x.renewal_date)} • ${esc(x.renewal_type||'Renovação')} • aviso ${esc(x.reminder_days||30)} dias antes</span></div>`).join('')||'<span class="sub">Nenhuma renovação nos próximos 60 dias.</span>';const visits=[...(cache.visits||[])].sort((a,b)=>String(a.visit_date||'').localeCompare(String(b.visit_date||''))||String(a.start_time||'').localeCompare(String(b.start_time||''))).slice(0,6);document.getElementById('dashVisits').innerHTML=visits.length?visits.map(v=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>${esc(refLabel('bro_clients',v.client_id))}</b><br><span class="sub">${esc(v.visit_date||'')} ${esc(v.start_time||'')} • ${esc(refLabel('bro_employees',v.employee_id))}</span></div>`).join(''):'<span class="sub">Nenhuma visita cadastrada.</span>';const calls=(cache.calls||[]).filter(x=>['urgent','high'].includes(x.priority)).slice(0,6);document.getElementById('dashCalls').innerHTML=calls.length?calls.map(c=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><b>#${c.call_number||''} ${esc(c.title)}</b><br><span class="badge red">${esc(pretty(c.priority))}</span> <span class="sub">${esc(refLabel('bro_clients',c.client_id))}</span></div>`).join(''):'<span class="sub">Nenhum chamado prioritário.</span>';const low=(cache.parts||[]).filter(x=>x.active!==false&&Number(x.stock_quantity||0)<=Number(x.min_stock||0));if(document.getElementById('mStock'))document.getElementById('mStock').textContent=low.length;if(document.getElementById('dashStock'))document.getElementById('dashStock').replaceChildren(...(low.slice(0,6).map(x=>{const d=document.createElement('div');d.style='padding:10px 0;border-bottom:1px solid #edf1f5';d.innerHTML='<b>'+esc(x.description)+'</b><br><span class="sub">Estoque: '+esc(x.stock_quantity)+' '+esc(x.unit||'')+' • mínimo '+esc(x.min_stock||0)+'</span>';return d})));if(document.getElementById('dashStock')&&low.length===0)document.getElementById('dashStock').innerHTML='<span class="sub">Nenhuma peça abaixo do estoque mínimo.</span>'}
 showSection('dashboard');
 </script>
